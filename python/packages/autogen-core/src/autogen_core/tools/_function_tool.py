@@ -25,6 +25,7 @@ class FunctionToolConfig(BaseModel):
     description: str
     global_imports: Sequence[Import]
     has_cancellation_support: bool
+    strict: bool = False
 
 
 class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]):
@@ -69,7 +70,9 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
 
             async def example():
                 # Initialize a FunctionTool instance for retrieving stock prices.
-                stock_price_tool = FunctionTool(get_stock_price, description="Fetch the stock price for a given ticker.")
+                stock_price_tool = FunctionTool(
+                    get_stock_price, description="Fetch the stock price for a given ticker."
+                )
 
                 # Execute the tool with cancellation support.
                 cancellation_token = CancellationToken()
@@ -138,6 +141,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
             name=self.name,
             description=self.description,
             has_cancellation_support=self._has_cancellation_support,
+            strict=self._strict,
         )
 
     @classmethod
@@ -178,4 +182,10 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         if not callable(func):
             raise TypeError(f"Expected function but got {type(func)}")
 
-        return cls(func, name=config.name, description=config.description, global_imports=config.global_imports)
+        return cls(
+            func,
+            name=config.name,
+            description=config.description,
+            global_imports=config.global_imports,
+            strict=config.strict,
+        )

@@ -383,3 +383,31 @@ def test_trusted_provider_via_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
 
     namespaces = _get_trusted_namespaces()
     assert "mycompany_agents." in namespaces
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("strict", [True, False])
+async def test_function_tool_strict_roundtrip(strict: bool) -> None:
+    def double(value: int) -> int:
+        return value * 2
+
+    tool = FunctionTool(double, description="Double a value", strict=strict)
+    with pytest.warns(UserWarning, match="SECURITY WARNING"):
+        loaded = FunctionTool.load_component(tool.dump_component())
+
+    assert loaded.schema == tool.schema
+    assert await loaded.run_json({"value": 21}, CancellationToken()) == 42
+
+
+@pytest.mark.asyncio
+async def test_function_tool_load_legacy_config_without_strict() -> None:
+    def double(value: int) -> int:
+        return value * 2
+
+    config = FunctionTool(double, description="Double a value").dump_component()
+    config.config.pop("strict", None)
+    with pytest.warns(UserWarning, match="SECURITY WARNING"):
+        loaded = FunctionTool.load_component(config)
+
+    assert loaded.schema["strict"] is False
+    assert await loaded.run_json({"value": 21}, CancellationToken()) == 42
